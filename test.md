@@ -1,42 +1,48 @@
 [TOC]
 
 # DMP流程测试
-
 ## 一.lps收数统计
-###1.分类型前的处理
-1.检查参数合法性
+### 1.分类型前的处理
 
-	类型1 LPS_LandingView无参数检查 
+(1). 检查参数合法性
 
-	类型2 LPS_LandingStay： StayTime == 0 ，不处理
+- 类型1 LPS_LandingView无参数检查
+- 类型2 LPS_LandingStay： StayTime == 0 ，不处理
+- 类型3 LPS_LandingLinkClick无参数检查
+- 类型4 LPS_PointerClick： EventName == ""，不处理
+- 类型5 LPS_PointerVideo： EventName == ""，不处理
+- 类型6 LPS_PointerVideoStay： EventName == "" || EventDurationTime==0，不处理
 
-	类型3 LPS_LandingLinkClick无参数检查  
+(2). 从请求里获取uuid(对应cookie的utm_uuid) ：如果有uuid，则isNewUUID = false。如果没有uuid，则生成uuid，isNewUUID = true。
 
-	类型4 LPS_PointerClick： EventName == ""，不处理
+(3). 获取UtmId：先判断url里是否有utm，如果无，就从请求里获取（对应cookie的 __lps__utm_id）
 
-	类型5 LPS_PointerVideo： EventName == ""，不处理
+(4). 无UtmId：从请求里获取ip 、ua  
 
-	类型6 LPS_PointerVideoStay： EventName == "" || EventDurationTime==0，不处理
+(5). 有UtmId：
+- 根据td:utm_id:utmid，从redis获取信息；redis没有对应数据，结束收数处理。
+- isNewUUID == true，且redis里有Uuid：则把它赋值给dim.Uuid 
+- 从请求里获取ip 、ua；
+- 检查ip、ua：和redis里的信息是否一致，如不一致，且redis数据有utm_id值：则用set_ip接口保存ip、ua
 
-	类型7 LPS_JSTransfer：  EventName == "" || UtmId == ""，不处理
+(6). setCookies (对应cookie的utm_uuid: Uuid) 
 
-2. 从请求里获取uuid(对应cookie的utm_uuid) ：如果有uuid，则isNewUUID = false。如果没有uuid，则生成uuid，isNewUUID = true。
-3. 获取UtmId：先判断url里是否有utm，如果无，就从请求里获取（对应cookie的 __lps__utm_id）
-4. 无UtmId：从请求里获取ip 、ua
-5. 有UtmId：根据td:utm_id:utmid，从redis获取信息；redis没有对应数据，结束收数处理。
-  isNewUUID == true，且redis里有Uuid：则把它赋值给dim.Uuid
-  从请求里获取ip 、ua；
-  检查ip、ua：和redis里的信息是否一致，如不一致，且redis数据有utm_id值：则用set_ip接口保存ip、ua
-6. setCookies (对应cookie的utm_uuid: Uuid) 
-7. 用请求里的数据替换掉redis读取的数据：
+(7). 用请求里的数据替换掉redis读取的数据：
+
   paramMap.LPSUserId = dim.UserId
-  paramMap.LPSLandingPageId = dim.LandingPageId
-  paramMap.LPSVersion = dim.Version
-  8、埋点映射
-  根据eventName + lpsLandingPageId 生成 key ,将key、eventName 保存到MYSQL redis
-  9.下面按类型处理
 
-###2.utmId对应的redis数据
+  paramMap.LPSLandingPageId = dim.LandingPageId
+
+  paramMap.LPSVersion = dim.Version
+
+(8).埋点映射
+
+  根据eventName + lpsLandingPageId 生成 key ,将key、eventName 保存到MYSQL redis
+
+(9).下面按类型处理
+
+### 2.utmId对应的redis数据
+
 ```json
 {
     "business_id": 88001,
@@ -66,12 +72,16 @@
 }
 
 ```
-###3.LPS_LandingView
-####(1).查重
-####(2) 有utmId，入库lps_main td_lps  td_main
-#####[1].url参数：tp\nid\utm
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test&utm=1530668431031d862af9f81a
-2.lps日志
+
+### 3.LPS_LandingView
+#### (1).查重
+#### (2) 有utmId，入库lps_main td_lps  td_main
+##### [1].url参数：tp\nid\utm
+
+- url: http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test&utm=1530668431031d862af9f81a
+
+- lps日志
+
 ```json
 {
     "log_type":1,
@@ -105,7 +115,8 @@
     "targeting_id": 88012,
 }
 ```
-3.td日志
+- td日志
+
 ```json
 {
     "log_type":1,
@@ -168,14 +179,19 @@
      "page_views":0,
 }
 ```
-4.SQL语句校验数据：
+
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530670760
+
 select * from td_main where ts = 1530670760
+
 select * from td_lps where ts =1530670760
-b_visitors  l_visitors =1
-#####[2].url参数：tp\nid\utm\uid\lid\v 
-1.先删除浏览器cookie，url: http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test001&utm=1530668431031d862af9f81a2&uid=99007&lid=99006&v=99008
-2.lps日志
+
+##### [2].url参数：tp\nid\utm\uid\lid\v 
+
+- 先删除浏览器cookie，url: http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test001&utm=1530668431031d862af9f81a2&uid=99007&lid=99006&v=99008
+- lps日志
 ```json
 {
     "log_type":1,
@@ -209,7 +225,7 @@ b_visitors  l_visitors =1
     "targeting_id": 88012,
 }
 ```
-3.td日志
+- td日志
 ```json
 {
     "log_type":1,
@@ -272,15 +288,18 @@ b_visitors  l_visitors =1
      "page_views":0,
 }
 ```
-4.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530671743;
+
 select * from td_main where ts = 1530671743;
+
 select * from td_lps where ts =1530671743;
-b_visitors  l_visitors =0
-####(3)无utmid, 入库 lps_main   td_main
-#####[1].url参数：tp\nid
-1.先删除浏览器cookie，url:http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test002
-2.lps日志
+
+#### (3)无utmid, 入库 lps_main   td_main
+##### [1].url参数：tp\nid
+- 先删除浏览器cookie，url:http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test002
+- lps日志
 ```json
 {
     "log_type":1,
@@ -314,7 +333,7 @@ b_visitors  l_visitors =0
     "targeting_id": 0,
 }
 ```
-3.td日志
+- td日志
 ```json
 {
     "log_type":1,
@@ -377,13 +396,15 @@ b_visitors  l_visitors =0
      "page_views":0,
 }
 ```
-4.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530672059;
+
 select * from td_main where ts = 1530672059;
-b_visitors  l_visitors =1
-#####[2].url参数：tp\nid\uid\lid\v 
-1.先删除浏览器cookie，url:http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test003&uid=99007&lid=99006&v=99008
-2.lps日志
+
+##### [2].url参数：tp\nid\uid\lid\v 
+- 先删除浏览器cookie，url:http://127.0.0.1:9009/lps/a.gif?tp=1&nid=test003&uid=99007&lid=99006&v=99008
+- lps日志
 ```json
 {
     "log_type":1,
@@ -417,7 +438,7 @@ b_visitors  l_visitors =1
     "targeting_id": 0,
 }
 ```
-3.td日志
+- td日志
 ```json
 {
     "log_type":1,
@@ -480,21 +501,21 @@ b_visitors  l_visitors =1
      "page_views":0,
 }
 ```
-4.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530672285;
+
 select * from td_main where ts = 1530672285;
 
-b_visitors  l_visitors=1
-
 ### 4.LPS_LandingStay
-####(1) 有utmId，入库lps_main td_lps 
+#### (1) 有utmId，入库lps_main td_lps 
 
 没有清空浏览器cookies，所以uuid 的值和上面的uuid一样。
 
-#####[1].url参数：tp\utm\st
+##### [1].url参数：tp\utm\st
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=2&utm=1530668431031d862af9f81a&st=6
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=2&utm=1530668431031d862af9f81a&st=6
+- lps日志
 ```json
 {
     "log_type":2,
@@ -528,15 +549,16 @@ b_visitors  l_visitors=1
     "targeting_id": 88012,
 }
 ```
-3.SQL语句校验数据：
-lps_main表
-select * from lps_main where ts = 1530672770
-td_lps表
-select * from td_lps where ts =1530672770
-#####[2].url参数：tp\utm\st\uid\lid\v
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=2&utm=1530668431031d862af9f81a&st=6&uid=99007&lid=99006&v=99008
+- SQL语句校验数据：
 
-2.lps日志
+select * from lps_main where ts = 1530672770
+
+select * from td_lps where ts =1530672770
+
+##### [2].url参数：tp\utm\st\uid\lid\v
+- url: http://127.0.0.1:9009/lps/a.gif?tp=2&utm=1530668431031d862af9f81a&st=6&uid=99007&lid=99006&v=99008
+
+- lps日志
 ```json
 {
     "log_type":2,
@@ -570,15 +592,17 @@ select * from td_lps where ts =1530672770
     "targeting_id": 88012,
 }
 ```
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530672980;
+
 select * from td_lps where ts =1530672980;
 
-####(3)无utmid, 入库 lps_main 
-#####[1].url参数：tp\st
+#### (3)无utmid, 入库 lps_main 
+##### [1].url参数：tp\st
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=2&st=6
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=2&st=6
+- lps日志
 
 ```json
 {
@@ -613,12 +637,13 @@ select * from td_lps where ts =1530672980;
     "targeting_id": 0,
 }
 ```
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673100;
 
-#####[2].url参数：tp\nid\st\uid\lid\v 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=2&st=6&uid=99007&lid=99006&v=99008
-2.lps日志
+##### [2].url参数：tp\nid\st\uid\lid\v 
+- url:http://127.0.0.1:9009/lps/a.gif?tp=2&st=6&uid=99007&lid=99006&v=99008
+- lps日志
 ```json
 {
     "log_type":2,
@@ -652,7 +677,8 @@ select * from lps_main where ts = 1530673100;
     "targeting_id": 0,
 }
 ```
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673226;
 
 ### 5.LPS_LandingLinkClick 
@@ -663,8 +689,8 @@ select * from lps_main where ts = 1530673226;
 
 ##### [1].url参数：tp\nid\utm
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3001&utm=1530668431031d862af9f81a
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3001&utm=1530668431031d862af9f81a
+- lps日志
 
 ```json
 {
@@ -699,14 +725,16 @@ select * from lps_main where ts = 1530673226;
     "targeting_id": 88012,
 }
 ```
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673433;
+
 select * from td_lps where ts =1530673433;
 
 ##### [2].url参数：tp\nid\utm\uid\lid\v
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3002&utm=1530668431031d862af9f81a&uid=99007&lid=99006&v=99008
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3002&utm=1530668431031d862af9f81a&uid=99007&lid=99006&v=99008
+- lps日志
 
 ```json
 {
@@ -742,16 +770,18 @@ select * from td_lps where ts =1530673433;
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673515;
+
 select * from td_lps where ts =1530673515;
 
 #### (3)无utmid, 入库 lps_main 
 
 ##### [1].url参数：tp\nid
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3003
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3003
+- lps日志
 
 ```json
 {
@@ -786,13 +816,14 @@ select * from td_lps where ts =1530673515;
     "targeting_id": 0,
 }
 ```
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673667;
 
 ##### [2].url参数：tp\nid\uid\lid\v
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3004&uid=99007&lid=99006&v=99008
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=3&nid=test3004&uid=99007&lid=99006&v=99008
+- lps日志
 
 ```json
 {
@@ -828,7 +859,8 @@ select * from lps_main where ts = 1530673667;
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673759;
 
 ### 6.LPS_PointerClick 
@@ -838,8 +870,8 @@ select * from lps_main where ts = 1530673759;
 
 ##### [1].url参数：tp\nid\utm\en
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4001&utm=1530668431031d862af9f81a&en=pointerClick20180704001
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4001&utm=1530668431031d862af9f81a&en=pointerClick20180704001
+- lps日志
 
 ```json
 {
@@ -875,15 +907,18 @@ select * from lps_main where ts = 1530673759;
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673878;
+
 select * from td_lps where ts =1530673878;
+
 select * from event_mapping where id =167021687134170 and value=“pointerClick20180704001”;
 
 ##### [2].url参数：tp\nid\utm\uid\lid\v\en
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4002&utm=1530668431031d862af9f81a&uid=99007&lid=99006&v=99008&en=pointerClick20180704002
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4002&utm=1530668431031d862af9f81a&uid=99007&lid=99006&v=99008&en=pointerClick20180704002
+- lps日志
 
 ```json
 {
@@ -918,16 +953,20 @@ select * from event_mapping where id =167021687134170 and value=“pointerClick2
     "targeting_id": 88012,
 }
 ```
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530673995;
+
 select * from td_lps where ts =1530673995;
+
 select * from event_mapping where id =37727569642265 and `value`="pointerClick20180704002"
+
 #### (3)无utmid, 入库 lps_main 
 
 ##### [1].url参数：tp\nid\en
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4003&en=pointerClick20180704003
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4003&en=pointerClick20180704003
+- lps日志
 
 ```json
 {
@@ -962,13 +1001,16 @@ select * from event_mapping where id =37727569642265 and `value`="pointerClick20
     "targeting_id": 0,
 }
 ```
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530674109;
+
 select * from event_mapping where id =52378432806730 and `value`="pointerClick20180704003"
+
 ##### [2].url参数：tp\nid\uid\lid\v\en
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4004&uid=99007&lid=99006&v=99008&en=pointerClick20180704004
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=4&nid=test4004&uid=99007&lid=99006&v=99008&en=pointerClick20180704004
+- lps日志
 
 ```json
 {
@@ -1004,8 +1046,10 @@ select * from event_mapping where id =52378432806730 and `value`="pointerClick20
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530674229;
+
 select * from event_mapping where id =126656804357916 and `value`="pointerClick20180704004"
 
 ### 7.LPS_PointerVideo 
@@ -1015,8 +1059,8 @@ select * from event_mapping where id =126656804357916 and `value`="pointerClick2
 
 ##### [1].url参数：tp\nid\utm\en
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5001&utm=1530668431031d862af9f81a&en=pointerVideo20180704001
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5001&utm=1530668431031d862af9f81a&en=pointerVideo20180704001
+- lps日志
 
 ```json
 {
@@ -1052,16 +1096,18 @@ select * from event_mapping where id =126656804357916 and `value`="pointerClick2
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530674434;
+
 select * from td_lps where ts =1530674434;
 
 select * from event_mapping where id =92198463329356 and `value`="pointerVideo20180704001";
 
 ##### [2].url参数：tp\nid\utm\en\uid\lid\v
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5002&utm=1530668431031d862af9f81a&en=pointerVideo20180704002&uid=99007&lid=99006&v=99008
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5002&utm=1530668431031d862af9f81a&en=pointerVideo20180704002&uid=99007&lid=99006&v=99008
+- lps日志
 
 ```json
 {
@@ -1097,8 +1143,10 @@ select * from event_mapping where id =92198463329356 and `value`="pointerVideo20
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530674670;
+
 select * from td_lps where ts =1530674670;
 
 select * from event_mapping where id =37729609779223 and `value`="pointerVideo20180704002"
@@ -1107,8 +1155,8 @@ select * from event_mapping where id =37729609779223 and `value`="pointerVideo20
 
 ##### [1].url参数：tp\nid\en
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5003&en=pointerVideo20180704003
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5003&en=pointerVideo20180704003
+- lps日志
 
 ```json
 {
@@ -1144,15 +1192,16 @@ select * from event_mapping where id =37729609779223 and `value`="pointerVideo20
 }
 ```
 
-4.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530674839;
 
 select * from event_mapping where id =131938100252117 and `value`="pointerVideo20180704003"
 
 ##### [2].url参数：tp\nid\en\uid\lid\v
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5004&en=pointerVideo20180704004&uid=99007&lid=99006&v=99008
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=5&nid=test5004&en=pointerVideo20180704004&uid=99007&lid=99006&v=99008
+- lps日志
 
 ```json
 {
@@ -1188,7 +1237,8 @@ select * from event_mapping where id =131938100252117 and `value`="pointerVideo2
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530675066;
 
 select * from event_mapping where id =12379681894373 and `value`="pointerVideo20180704004"
@@ -1198,8 +1248,8 @@ select * from event_mapping where id =12379681894373 and `value`="pointerVideo20
 
 ##### [1].url参数：tp\utm\en\vdt
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=6&utm=1530668431031d862af9f81a&en=pointerVideoStay20180704001&vdt=20
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=6&utm=1530668431031d862af9f81a&en=pointerVideoStay20180704001&vdt=20
+- lps日志
 
 ```json
 {
@@ -1235,16 +1285,18 @@ select * from event_mapping where id =12379681894373 and `value`="pointerVideo20
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530675355;
+
 select * from td_lps where ts =1530675355;
 
 select * from event_mapping where id =163957924650195  and `value`="pointerVideoStay20180704001"
 
 ##### [2].url参数：tp\utm\en\vdt\uid\lid\v
 
-1.url: http://127.0.0.1:9009/lps/a.gif?tp=6&utm=1530668431031d862af9f81a&en=pointerVideoStay20180704002&vdt=20&uid=99007&lid=99006&v=99008
-2.lps日志
+- url: http://127.0.0.1:9009/lps/a.gif?tp=6&utm=1530668431031d862af9f81a&en=pointerVideoStay20180704002&vdt=20&uid=99007&lid=99006&v=99008
+- lps日志
 
 ```json
 {
@@ -1280,8 +1332,10 @@ select * from event_mapping where id =163957924650195  and `value`="pointerVideo
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530675792;
+
 select * from td_lps where ts =1530675792;
 
 select * from event_mapping where id =36973092365866  and `value`="pointerVideoStay20180704002"
@@ -1290,8 +1344,8 @@ select * from event_mapping where id =36973092365866  and `value`="pointerVideoS
 
 ##### [1].url参数：tp\en\vdt
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=6&en=pointerVideoStay20180704003&vdt=20
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=6&en=pointerVideoStay20180704003&vdt=20
+- lps日志
 
 ```json
 {
@@ -1327,15 +1381,16 @@ select * from event_mapping where id =36973092365866  and `value`="pointerVideoS
 }
 ```
 
-4.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530675914;
 
 select * from event_mapping where id =213651727800883 and `value`="pointerVideoStay20180704003"
 
 ##### [2].url参数：tp\en\vdt\uid\lid\v
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=6&en=pointerVideoStay20180704004&vdt=20&uid=99007&lid=99006&v=99008
-2.lps日志
+- url:http://127.0.0.1:9009/lps/a.gif?tp=6&en=pointerVideoStay20180704004&vdt=20&uid=99007&lid=99006&v=99008
+- lps日志
 
 ```json
 {
@@ -1371,28 +1426,29 @@ select * from event_mapping where id =213651727800883 and `value`="pointerVideoS
 }
 ```
 
-3.SQL语句校验数据：
+- SQL语句校验数据：
+
 select * from lps_main where ts = 1530676098;
 
 select * from event_mapping where id =70322671598767 and `value`="pointerVideoStay20180704004";
 
-###9.LPS_JSTransfer  js脚步调用
+### 9.LPS_JSTransfer  js脚步调用
 
-####(1).处理逻辑
-	1.生成eventid; 
-	2.更新utm里面的eventid（对应字段是lps_event_id）
-####(2).url参数：tp\en\utm
+#### (1).处理逻辑
+- 生成eventid; 
+- 更新utm里面的eventid（对应字段是lps_event_id）
+#### (2).url参数：tp\en\utm
+- url:http://127.0.0.1:9009/lps/a.gif?tp=7&en=jsTransfer&utm=1530668431031d862af9f81a
+- 生成event_id：22549877616260，更新redis的数据（对应字段是lps_event_id）
+- SQL数据校验
 
-1.url:http://127.0.0.1:9009/lps/a.gif?tp=7&en=jsTransfer&utm=1530668431031d862af9f81a
-2.生成event_id：22549877616260，更新redis的数据（对应字段是lps_event_id）
-3.SQL数据校验
 select * from event_mapping where id =22549877616260 and value="jsTransfer"
 
 ## 二.td统计
 
 ### 1.bi  (TD_Bi)
 
-####(1).HandleMsg日志
+#### (1).HandleMsg日志
 ```json
 {
     "data_type": "BIMsg",
@@ -1442,7 +1498,7 @@ select * from event_mapping where id =22549877616260 and value="jsTransfer"
     }
 }
 ```
-####(2) TDLog
+#### (2) TDLog
 ```json
 {
     "log_type":3,(TD_Bi)
@@ -1506,8 +1562,11 @@ select * from event_mapping where id =22549877616260 and value="jsTransfer"
 }
 ```
 #### (3).入库td_lps  td_main
+
 select * from td_main where ts=1530758003 and landing_page_id = 6604011;
+
 select * from td_lps where ts=1530758003 and landing_page_id = 6604011;
+
 select * from bi_mapping where id in (93535954831855,69668588532898,131699993768474,239501549786422,45987890529851,
 142127123595050,82421897857485,58432242197977,136064277200012,67982601925585);
 
@@ -1538,7 +1597,7 @@ select * from bi_mapping where id in (93535954831855,69668588532898,131699993768
 	    }
 	}
 ```
-####(2) TDLog
+#### (2) TDLog
 ```json
 {
     "log_type":2,(TD_Business)
@@ -1602,8 +1661,10 @@ select * from bi_mapping where id in (93535954831855,69668588532898,131699993768
 }
 ```
 #### (3).入库td_main
+
 select * from td_main where ts in (1530760798);
-###3.行为日志(TD_Clicks)
+
+### 3.行为日志(TD_Clicks)
 
 #### (1).td日志
 ```json
@@ -1641,4 +1702,5 @@ select * from td_main where ts in (1530760798);
 ```
 
 #### (2).入库td_main
+
 select * from td_main where ts in (1530771773);

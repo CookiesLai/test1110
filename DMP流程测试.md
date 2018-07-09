@@ -1,68 +1,4 @@
-- [DMP流程测试](#dmp)
-    - [一.lps收数统计](#lps)
-        - [1.分类型前的处理](#1)
-        - [2.utmId对应的redis数据](#2utmidredis)
-        - [3.LPS_LandingView](#3lps-landingview)
-            - [(1).查重](#1)
-            - [(2) 有utmId，入库lps_main td_lps td_main](#2-utmidlps-main-td-lps-td-main)
-                - [[1].url参数：tp\nid\utm](#1urltpnidutm)
-                - [[2].url参数：tp\nid\utm\uid\lid\v](#2urltpnidutmuidlidv)
-            - [(3)无utmid, 入库 lps_main td_main](#3utmid---lps-main-td-main)
-                - [[1].url参数：tp\nid](#1urltpnid)
-                - [[2].url参数：tp\nid\uid\lid\v](#2urltpniduidlidv)
-        - [4.LPS_LandingStay](#4lps-landingstay)
-            - [(1) 有utmId，入库lps_main td_lps](#1-utmidlps-main-td-lps)
-                - [[1].url参数：tp\utm\st](#1urltputmst)
-                - [[2].url参数：tp\utm\st\uid\lid\v](#2urltputmstuidlidv)
-            - [(3)无utmid, 入库 lps_main](#3utmid---lps-main)
-                - [[1].url参数：tp\st](#1urltpst)
-                - [[2].url参数：tp\nid\st\uid\lid\v](#2urltpnidstuidlidv)
-        - [5.LPS_LandingLinkClick](#5lps-landinglinkclick)
-            - [(1).查重](#1)
-            - [(2) 有utmId，入库lps_main td_lps](#2-utmidlps-main-td-lps)
-                - [[1].url参数：tp\nid\utm](#1urltpnidutm)
-                - [[2].url参数：tp\nid\utm\uid\lid\v](#2urltpnidutmuidlidv)
-            - [(3)无utmid, 入库 lps_main](#3utmid---lps-main)
-                - [[1].url参数：tp\nid](#1urltpnid)
-                - [[2].url参数：tp\nid\uid\lid\v](#2urltpniduidlidv)
-        - [6.LPS_PointerClick](#6lps-pointerclick)
-            - [(1).查重](#1)
-            - [(2) 有utmId，入库lps_main td_lps](#2-utmidlps-main-td-lps)
-                - [[1].url参数：tp\nid\utm\en](#1urltpnidutmen)
-                - [[2].url参数：tp\nid\utm\uid\lid\v\en](#2urltpnidutmuidlidven)
-            - [(3)无utmid, 入库 lps_main](#3utmid---lps-main)
-                - [[1].url参数：tp\nid\en](#1urltpniden)
-                - [[2].url参数：tp\nid\uid\lid\v\en](#2urltpniduidlidven)
-        - [7.LPS_PointerVideo](#7lps-pointervideo)
-            - [(1).查重](#1)
-            - [(2) 有utmId，入库lps_main td_lps](#2-utmidlps-main-td-lps)
-                - [[1].url参数：tp\nid\utm\en](#1urltpnidutmen)
-                - [[2].url参数：tp\nid\utm\en\uid\lid\v](#2urltpnidutmenuidlidv)
-            - [(3)无utmid, 入库 lps_main](#3utmid---lps-main)
-                - [[1].url参数：tp\nid\en](#1urltpniden)
-                - [[2].url参数：tp\nid\en\uid\lid\v](#2urltpnidenuidlidv)
-        - [8.LPS_PointerVideoStay](#8lps-pointervideostay)
-            - [(1) 有utmId，入库lps_main td_lps](#1-utmidlps-main-td-lps)
-                - [[1].url参数：tp\utm\en\vdt](#1urltputmenvdt)
-                - [[2].url参数：tp\utm\en\vdt\uid\lid\v](#2urltputmenvdtuidlidv)
-            - [(2)无utmid, 入库 lps_main](#2utmid---lps-main)
-                - [[1].url参数：tp\en\vdt](#1urltpenvdt)
-                - [[2].url参数：tp\en\vdt\uid\lid\v](#2urltpenvdtuidlidv)
-        - [9.LPS_JSTransfer js脚步调用](#9lps-jstransfer-js)
-            - [(1).处理逻辑](#1)
-            - [(2).url参数：tp\en\utm](#2urltpenutm)
-    - [二.td统计](#td)
-        - [1.bi (TD_Bi)](#1bi-td-bi)
-            - [(1).HandleMsg日志](#1handlemsg)
-            - [(2) TDLog](#2-tdlog)
-            - [(3).入库td_lps td_main](#3td-lps-td-main)
-        - [2. 业务数据 (TD_Business)](#2--td-business)
-            - [(1).TDBusinessMsg日志](#1tdbusinessmsg)
-            - [(2) TDLog](#2-tdlog)
-            - [(3).入库td_main](#3td-main)
-        - [3.行为日志(TD_Clicks)](#3td-clicks)
-            - [(1).td日志](#1td)
-            - [(2).入库td_main](#2td-main)
+[TOC]
 
 # DMP流程测试
 ## 一.lps收数统计
@@ -246,11 +182,11 @@
 
 - SQL语句校验数据：
 
-select * from lps_main where ts = 1530670760
+select * from lps_main where ts = 1530670760;
 
-select * from td_main where ts = 1530670760
+select * from td_main where ts = 1530670760;
 
-select * from td_lps where ts =1530670760
+select * from td_lps where ts =1530670760;
 
 ##### [2].url参数：tp\nid\utm\uid\lid\v 
 

@@ -1,6 +1,6 @@
 ## task_loader 任务加载模块
 #### 1. 可以起多个节点，通过配置区分不同节点；模块配置有：
-```json
+```javascript
 {
 	node: conf.cluster_node,// 集群节点名称:打印系统日志、task表使用到
 	collection: "bi_task", // 任务数据表名
@@ -13,7 +13,7 @@
 }
 ```
 #### 2. 轮询从mongo里读取符合条件的任务，条件如下：
-```json
+```javascript
 {
 	 status: READY, //任务状态
 	 IsDeleted: false, 
@@ -64,7 +64,7 @@
 #### 4. 步骤3中，消息处理过程出错或者需要延迟处理，则做如下处理：
 		(1). 设置消息出错次数、下次处理的时间点、消息最迟的处理时间，然后放进消息池
 #### 5. task 对象字段说明
-```json
+```javascript
 	{
 		input 输入源，必填，数组或字符串，对应配置的app.input对象的属性名。
 		filter 消息过滤方法，必须是方法，可选。
@@ -125,7 +125,7 @@
 ## 内建消息池模块
 #### 1. 延迟处理和系统处理出错的消息，会放到消息池,保存在mongo，再轮询读取消息处理；
 #### 2. 读取消息过滤条件
-```json 
+```javascript 
 {
 	status: MsgStatus,Ready, //消息有两种状态：准备就绪1，已消费2,
 	taskId: {"$in": taskIds},
